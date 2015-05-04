@@ -1,0 +1,6 @@
+"STARTUP.obj",
+"main.obj",
+"display_led.obj",
+"DS18B20.obj" 
+TO "project" 
+RAMSIZE(256) 

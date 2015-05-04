@@ -1,0 +1,187 @@
+C51 COMPILER V8.08   MAIN                                                                  05/04/2015 22:00:34 PAGE 1   
+
+
+C51 COMPILER V8.08, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include "STC15F2K60S2.H"
+   2          
+   3          extern void  disp(void);
+   4          extern void Delay10ms();
+   5          extern unsigned char bitbuf[8];
+   6          
+   7          extern bit Start18B20(void);
+   8          extern bit Get18B20Temp(int *temp);
+   9          
+  10          bit flag1s = 0;          //1s定时标志
+  11          unsigned char T0RH = 0;  //T0重载值的高字节
+  12          unsigned char T0RL = 0;  //T0重载值的低字节
+  13          
+  14          void ConfigTimer0(unsigned int ms);
+  15          
+  16          
+  17          sbit S7 = P3^0;
+  18          sbit S6 = P3^1;
+  19          sbit S5 = P3^2;
+  20          sbit S4 = P3^3;
+  21          
+  22          void main()
+  23          {
+  24   1              bit keybuf7, keybuf6, keybuf5, keybuf4;
+  25   1              bit backup7 = 1  , backup6 = 1, backup5 = 1, backup4  = 1;
+  26   1              unsigned char cnt_up = 30, cnt_down= 25;
+  27   1      
+  28   1              bit res;
+  29   1          int temp;        //读取到的当前温度值
+  30   1          int int_temp ;      //温度值的整数部分
+  31   1      
+  32   1          EA = 1;            //开总中断
+  33   1          ConfigTimer0(10);  //T0定时10ms
+  34   1              //Start18B20();      //启动DS18B20
+  35   1      
+  36   1              while(1)
+  37   1              {
+  38   2                 disp();
+  39   2      
+  40   2                 if (flag1s)  //每秒更新一次温度
+  41   2              {
+  42   3                  flag1s = 0;
+  43   3                  res = Get18B20Temp(&temp);  //读取当前温度
+  44   3                          
+  45   3                  if (res)                    //读取成功时，刷新当前温度显示
+  46   3                  {
+  47   4                      int_temp = temp >> 4;             //分离出温度值整数部分
+  48   4                                      bitbuf[7] = int_temp % 10 ;
+  49   4                                  bitbuf[6] = int_temp / 10 ;
+  50   4                  }
+  51   3                              else
+  52   3                              {
+  53   4                                      bitbuf[7] = 18 ;
+  54   4                                  bitbuf[6] = 18 ;
+  55   4                              }
+C51 COMPILER V8.08   MAIN                                                                  05/04/2015 22:00:34 PAGE 2   
+
+  56   3                  Start18B20();               //重新启动下一次转换          
+  57   3              }
+  58   2      
+  59   2                 keybuf4 = S4;
+  60   2                 if (keybuf4 != backup4)                 //S4加上限
+  61   2                 {
+  62   3                          Delay10ms();
+  63   3                              if (keybuf4 == S4)
+  64   3                              {
+  65   4                                        if (backup4 == 0)
+  66   4                                        {
+  67   5                                                cnt_up++;
+  68   5                                                bitbuf[1] = cnt_up % 10 ;
+  69   5                                                bitbuf[0] = cnt_up / 10 ;
+  70   5                                        }
+  71   4                                        backup4 = keybuf4;
+  72   4                              }
+  73   3                 }
+  74   2                 
+  75   2                 keybuf5 = S5;
+  76   2                 if (keybuf5 != backup5)                 //S5加下限
+  77   2                 {
+  78   3                                Delay10ms();
+  79   3                              if (keybuf5 == S5)
+  80   3                              {
+  81   4                                        if (backup5 == 0)
+  82   4                                        {
+  83   5                                                cnt_down++;
+  84   5                                                bitbuf[3] = cnt_down % 10 ;
+  85   5                                                bitbuf[2] = cnt_down / 10 ;
+  86   5                                        }
+  87   4                                         backup5 = keybuf5;
+  88   4                              }
+  89   3                 }
+  90   2      
+  91   2                 keybuf6 = S6;
+  92   2                 if (keybuf6 != backup6)                 //S6减上限
+  93   2                 {
+  94   3                                Delay10ms();
+  95   3                              if (keybuf6 == S6)
+  96   3                              {
+  97   4                                        if (backup6 == 0)
+  98   4                                        {
+  99   5                                                cnt_up--;
+ 100   5                                                bitbuf[1] = cnt_up % 10 ;
+ 101   5                                                bitbuf[0] = cnt_up / 10 ;
+ 102   5                                        }
+ 103   4                                        backup6 = keybuf6;
+ 104   4                              }
+ 105   3                 }
+ 106   2                 
+ 107   2                 keybuf7 = S7;
+ 108   2                 if (keybuf7 != backup7)                 //S7减下限
+ 109   2                 {
+ 110   3                                Delay10ms();
+ 111   3                              if (keybuf7 == S7)
+ 112   3                              {
+ 113   4                                        if (backup7 == 0)
+ 114   4                                        {
+ 115   5                                                cnt_down--;
+ 116   5                                                bitbuf[3] = cnt_down % 10 ;
+ 117   5                                                bitbuf[2] = cnt_down / 10 ;
+C51 COMPILER V8.08   MAIN                                                                  05/04/2015 22:00:34 PAGE 3   
+
+ 118   5                                        }
+ 119   4                                        backup7 = keybuf7;
+ 120   4                              }
+ 121   3                 }
+ 122   2              }
+ 123   1      }
+ 124          
+ 125          /* 配置并启动T0，ms-T0定时时间 */
+ 126          void ConfigTimer0(unsigned int ms)
+ 127          {
+ 128   1          unsigned long tmp;  //临时变量
+ 129   1          
+ 130   1          tmp = 11059200 / 12;      //定时器计数频率
+ 131   1          tmp = (tmp * ms) / 1000;  //计算所需的计数值
+ 132   1          tmp = 65536 - tmp;        //计算定时器重载值
+ 133   1          tmp = tmp + 12;           //补偿中断响应延时造成的误差
+ 134   1          T0RH = (unsigned char)(tmp>>8);  //定时器重载值拆分为高低字节
+ 135   1          T0RL = (unsigned char)tmp;
+ 136   1          TMOD &= 0xF0;   //清零T0的控制位
+ 137   1          TMOD |= 0x01;   //配置T0为模式1
+ 138   1          TH0 = T0RH;     //加载T0重载值
+ 139   1          TL0 = T0RL;
+ 140   1          ET0 = 1;        //使能T0中断
+ 141   1          TR0 = 1;        //启动T0
+ 142   1      }
+ 143          /* T0中断服务函数，完成1秒定时 */
+ 144          void InterruptTimer0() interrupt 1
+ 145          {
+ 146   1          static unsigned char tmr1s = 0;
+ 147   1          
+ 148   1          TH0 = T0RH;  //重新加载重载值
+ 149   1          TL0 = T0RL;
+ 150   1          tmr1s++;
+ 151   1          if (tmr1s >= 100)  //定时1s
+ 152   1          {
+ 153   2              tmr1s = 0;
+ 154   2              flag1s = 1;
+ 155   2          }
+ 156   1      }
+ 157          
+ 158          
+ 159          
+ 160          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    451    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3       8
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1       9
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
